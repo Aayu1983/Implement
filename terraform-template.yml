@@ -49,7 +49,13 @@ jobs:
 
       - name: Terraform Init
         shell: powershell
-        run: terraform init -backend-config="..." # (aapke backend details)
+        run: |
+          # dynamic backend configuration passi
+          terraform init `
+            -backend-config="resource_group_name=${{ inputs.resource_group_name }}" `
+            -backend-config="storage_account_name=${{ inputs.storage_account_name }}" `
+            -backend-config="container_name=${{ inputs.container_name }}" `
+           
 
       # --- BINARY GENERATION ---
       - name: Create Binary Plan
@@ -106,7 +112,13 @@ jobs:
 
       - name: Terraform Init
         shell: powershell
-        run: terraform init -backend-config="..."
+        run: |
+          # dynamic backend configuration pass
+          terraform init `
+            -backend-config="resource_group_name=${{ inputs.resource_group_name }}" `
+            -backend-config="storage_account_name=${{ inputs.storage_account_name }}" `
+            -backend-config="container_name=${{ inputs.container_name }}" `
+            -backend-config="key=${{ inputs.tf_state_key }}"
 
       # --- BINARY APPLY ---
       - name: Terraform Apply Binary
