@@ -25,7 +25,9 @@ on:
       container_name:
         required: true
         type: string
-     
+concurrency:
+  group: terraform-${{ github.event.inputs.target_env }}
+  cancel-in-progress: false     
 
 jobs:
   terraform-plan:
@@ -121,7 +123,5 @@ jobs:
       # --- BINARY APPLY ---
       - name: Terraform Apply Binary
         shell: powershell
-        run: |
-          # Yahan hum koi configuration file nahi, sirf binary file (tfplan) use kar rahe hain
-          # Isse "Configuration drift" ka khatra nahi rehta
+        run: |          
           terraform apply -auto-approve tfplan
