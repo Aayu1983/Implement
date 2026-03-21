@@ -40,7 +40,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Azure Login via OIDC
+      - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ inputs.client_id }}
@@ -49,33 +49,41 @@ jobs:
 
       - name: Terraform Init
         shell: powershell
-        run: |
-          # Yaha backend configuration dynamic pass ho rahi hai
-          terraform init `
-            -backend-config="resource_group_name=${{ inputs.resource_group_name }}" `
-            -backend-config="storage_account_name=${{ inputs.storage_account_name }}" `
-            -backend-config="container_name=${{ inputs.container_name }}" `
-            -backend-config="key=${{ inputs.tf_state_key }}"
-            
-      - name: Terraform Validate
-        shell: powershell
-        run: terraform validate
+        run: terraform init -backend-config="..." # (aapke backend details)
 
-      - name: Terraform Plan
+      # --- BINARY GENERATION ---
+      - name: Create Binary Plan
+        id: plan
         shell: powershell
         run: |
-          terraform plan -out=tfplan
+          # '-out' flag se binary file 'tfplan' banti hai
+          terraform plan -out=tfplan -input=false
+          
+          # Binary ka SHA nikalna (Integrity check ke liye)
+          $sha = (Get-FileHash tfplan -Algorithm SHA256).Hash
+          echo "PLAN_SHA=$sha" >> $env:GITHUB_ENV
+          Write-Host "Binary Plan SHA: $sha"
 
+      # --- NOTIFICATION (No Approval Here) ---
       - name: Notify Plan Details
         shell: powershell
         run: |
-          Write-Host "🚀 Notification: Plan for ${{ inputs.environment }} executed by ${{ github.actor }}"
+          Write-Host "📢 Notification: Binary Plan generated for ${{ inputs.environment }} by ${{ github.actor }}"
+          Write-Host "SHA Signature: ${{ env:PLAN_SHA }}"
+
+      # --- BINARY ARTIFACT UPLOAD ---
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-binary-${{ inputs.environment }}
+          path: tfplan
+          retention-days: 1
 
   terraform-apply:
     name: Terraform Apply (${{ inputs.environment }})
     needs: terraform-plan
     runs-on: windows-latest
-    environment: ${{ inputs.environment }} # Approval yaha aayega
+    environment: ${{ inputs.environment }} # YAHAN APPROVAL AAYEGA
     permissions:
       id-token: write
       contents: read
@@ -83,23 +91,27 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Azure Login via OIDC
+      # --- BINARY DOWNLOAD ---
+      - name: Download Binary Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-binary-${{ inputs.environment }}
+
+      - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ inputs.client_id }}
           tenant-id: ${{ inputs.tenant_id }}
           subscription-id: ${{ inputs.subscription_id }}
 
-      - name: Terraform Init (Apply Stage)
+      - name: Terraform Init
         shell: powershell
-        run: |
-          terraform init `
-            -backend-config="resource_group_name=${{ inputs.resource_group_name }}" `
-            -backend-config="storage_account_name=${{ inputs.storage_account_name }}" `
-            -backend-config="container_name=${{ inputs.container_name }}" `
-            -backend-config="key=${{ inputs.tf_state_key }}"
+        run: terraform init -backend-config="..."
 
-      - name: Terraform Apply
+      # --- BINARY APPLY ---
+      - name: Terraform Apply Binary
         shell: powershell
         run: |
-          terraform apply -auto-approve
+          # Yahan hum koi configuration file nahi, sirf binary file (tfplan) use kar rahe hain
+          # Isse "Configuration drift" ka khatra nahi rehta
+          terraform apply -auto-approve tfplan
