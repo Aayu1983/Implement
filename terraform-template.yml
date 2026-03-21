@@ -25,9 +25,7 @@ on:
       container_name:
         required: true
         type: string
-      tf_state_key:
-        required: true
-        type: string
+     
 
 jobs:
   terraform-plan:
