@@ -30,7 +30,7 @@ on:
 jobs:
   terraform-plan:
     name: Terraform Plan (${{ inputs.environment }})
-    runs-on: windows-latest
+    runs-on: [self-hosted, Windows]
     permissions:
       id-token: write
       contents: read
@@ -60,10 +60,10 @@ jobs:
         id: plan
         shell: powershell
         run: |
-          # '-out' flag se binary file 'tfplan' banti hai
-          terraform plan -out=tfplan -input=false
+           erraform plan -out=tfplan -input=false
+    
+          # SHA task for Integrity check 
           
-          # Binary ka SHA nikalna (Integrity check ke liye)
           $sha = (Get-FileHash tfplan -Algorithm SHA256).Hash
           echo "PLAN_SHA=$sha" >> $env:GITHUB_ENV
           Write-Host "Binary Plan SHA: $sha"
@@ -72,7 +72,7 @@ jobs:
       - name: Notify Plan Details
         shell: powershell
         run: |
-          Write-Host "📢 Notification: Binary Plan generated for ${{ inputs.environment }} by ${{ github.actor }}"
+          Write-Host " Notification: Binary Plan generated for ${{ inputs.environment }} by ${{ github.actor }}"
           Write-Host "SHA Signature: ${{ env:PLAN_SHA }}"
 
       # --- BINARY ARTIFACT UPLOAD ---
@@ -86,7 +86,7 @@ jobs:
   terraform-apply:
     name: Terraform Apply (${{ inputs.environment }})
     needs: terraform-plan
-    runs-on: windows-latest
+    runs-on: [self-hosted, Windows]
     environment: ${{ inputs.environment }} # YAHAN APPROVAL AAYEGA
     permissions:
       id-token: write
