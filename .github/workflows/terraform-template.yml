@@ -26,6 +26,7 @@ on:
         required: true
       container_name:
         required: true
+    
 jobs:
   terraform-plan:
     name: Terraform Plan (${{ inputs.environment }})
@@ -50,6 +51,12 @@ jobs:
           subscription-id: ${{ secrets.subscription_id }}
 
       - name: Terraform Init
+        env:
+          ARM_CLIENT_ID: ${{ secrets.client_id }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.subscription_id }}
+          ARM_TENANT_ID: ${{ secrets.tenant_id }}
+          ARM_USE_OIDC: true
+      
         run: |
           terraform init `
             -backend-config="resource_group_name=${{ secrets.resource_group_name }}" `
