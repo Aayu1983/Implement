@@ -22,9 +22,9 @@ on:
         default: '.'
         type: string
 jobs:
-  # SIT Environment
+  # SIT Job
   SIT-Deployment:
-    if: github.ref_name == 'sit'
+    if: github.event.inputs.target_env == 'sit'
     uses: ./.github/workflows/terraform-template-multi.yml
     with:
       environment: 'sit'
@@ -32,9 +32,9 @@ jobs:
       tf_state_key: 'sit.terraform.tfstate'
     secrets: inherit
 
-  # UAT Environment
+  # UAT Job
   UAT-Deployment:
-    if: github.ref_name == 'uat'
+    if: github.event.inputs.target_env == 'uat'
     uses: ./.github/workflows/terraform-template-multi.yml
     with:
       environment: 'uat'
@@ -42,13 +42,12 @@ jobs:
       tf_state_key: 'uat.terraform.tfstate'
     secrets: inherit
 
-  # Production/DRHub Environment (Main Branch)
-  Prod-DRHub-Deployment:
-    if: github.ref_name == 'main'
+  # Production Job
+  Prod-Deployment:
+    if: github.event.inputs.target_env == 'prod'
     uses: ./.github/workflows/terraform-template-multi.yml
     with:
-      environment: 'production' # Isse input se dynamic bhi kar sakte ho
+      environment: 'production'
       working_directory: ${{ github.event.inputs.working_directory }}
       tf_state_key: 'prod.terraform.tfstate'
-    secrets: inherit
-  
+    secrets: inherit  
