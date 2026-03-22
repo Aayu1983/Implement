@@ -11,7 +11,7 @@ jobs:
   Production-Deployment:      
     uses: ./.github/workflows/terraform-template.yml
     with:
-      environment: 'Production' 
+      environment: 'production' 
       working_directory: '.' 
       tf_state_key: 'prod.terraform.tfstate'
     secrets: 
