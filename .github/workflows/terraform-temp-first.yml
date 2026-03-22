@@ -29,7 +29,7 @@ on:
 
 jobs:
   setup:
-    name: "Environment Initialization & Branch Routing"
+    name: "Environment Initialization"
     runs-on: [self-hosted, Windows]
     outputs:
       selected_branch: ${{ steps.determine_branch.outputs.branch }}
@@ -38,7 +38,8 @@ jobs:
         id: determine_branch
         shell: powershell
         run: |
-          $env_input = "${{ github.event.inputs.target_env }}"
+          # Use inputs.environment instead of github.event.inputs
+          $env_input = "${{ inputs.environment }}"
           if ($env_input -eq "production" -or $env_input -eq "drhub") {
               $branch = "main"
           } else {
@@ -47,33 +48,23 @@ jobs:
           echo "branch=$branch" >> $env:GITHUB_OUTPUT
           
   terraform-plan:
-    name: "Plan - ${{ github.event.inputs.target_env }}"
+    name: "Plan - ${{ inputs.environment }}"
     needs: setup
-    environment: ${{ github.event.inputs.target_env }}
+    # Environment context yahan zaroori hai secrets access ke liye
+    environment: ${{ inputs.environment }}
     runs-on: [self-hosted, Windows]
-    outputs:
-      plan_commit_sha: ${{ steps.capture_sha.outputs.sha }}
-      plan_artifact_name: ${{ steps.name_artifact.outputs.art_name }}
-    
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        shell: powershell
+        working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.setup.outputs.selected_branch }}
-
-      - name: Capture Exact Commit SHA
-        id: capture_sha
-        shell: powershell
-        run: |
-          $sha = (git rev-parse HEAD).Trim()
-          echo "sha=$sha" >> $env:GITHUB_OUTPUT
-
-      - name: Name Artifact
-        id: name_artifact
-        shell: powershell
-        run: |
-          echo "art_name=tf-plan-${{ github.event.inputs.target_env }}-${{ github.run_id }}" >> $env:GITHUB_OUTPUT
-
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -111,7 +102,7 @@ jobs:
           retention-days: 1
 
   terraform-apply:
-    name: Terraform Apply (${{ inputs.environment }})
+    name: "Apply - ${{ inputs.environment }}"
     needs: terraform-plan
     runs-on: [self-hosted, Windows]
     environment: ${{ inputs.environment }}
@@ -125,6 +116,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.setup.outputs.selected_branch }}
 
       - name: Download Binary Artifact
         uses: actions/download-artifact@v4
@@ -140,7 +133,6 @@ jobs:
           subscription-id: ${{ secrets.subscription_id }}
 
       - name: Terraform Init
-        # Apply job mein bhi ye env variables add karna zaroori hai
         env:
           ARM_CLIENT_ID: ${{ secrets.client_id }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.subscription_id }}
