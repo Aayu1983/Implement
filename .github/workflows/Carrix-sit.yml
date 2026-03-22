@@ -1,5 +1,5 @@
 # Carrix sit env
-name: Multi-Env Infra Pipeline
+name: Carrix sit  Infra Pipeline
 
 permissions:
   id-token: write
