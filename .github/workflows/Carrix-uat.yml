@@ -12,10 +12,8 @@ on:
         description: 'Select environment'
         required: true
         type: choice
-        options:
-          - sit
-          - uat
-          - prod
+        options:          
+          - uat          
       working_directory:
         description: 'Terraform directory path'
         required: true
