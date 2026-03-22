@@ -2,7 +2,7 @@ name: Terraform Deployment Template
 
 on:
   workflow_call:
-    inputs: # Sirf non-sensitive data
+    inputs:
       environment:
         required: true
         type: string
@@ -13,7 +13,7 @@ on:
       tf_state_key:
         required: true
         type: string
-    secrets: # <--- Sensitive data yahan aayega
+    secrets:
       client_id:
         required: true
       subscription_id:
@@ -26,7 +26,7 @@ on:
         required: true
       container_name:
         required: true
-    
+
 jobs:
   terraform-plan:
     name: Terraform Plan (${{ inputs.environment }})
@@ -35,6 +35,12 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    # --- CHANGE 1: Job level env variables ---
+    env:
+      ARM_CLIENT_ID: ${{ secrets.client_id }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.subscription_id }}
+      ARM_TENANT_ID: ${{ secrets.tenant_id }}
+      ARM_USE_OIDC: true
     defaults:
       run:
         shell: powershell
@@ -46,23 +52,17 @@ jobs:
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.client_id }}        # Pehle inputs.client_id tha
-          tenant-id: ${{ secrets.tenant_id }}        # Pehle inputs.tenant_id tha
+          client-id: ${{ secrets.client_id }}
+          tenant-id: ${{ secrets.tenant_id }}
           subscription-id: ${{ secrets.subscription_id }}
 
       - name: Terraform Init
-        env:
-          ARM_CLIENT_ID: ${{ secrets.client_id }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.subscription_id }}
-          ARM_TENANT_ID: ${{ secrets.tenant_id }}
-          ARM_USE_OIDC: true
-      
-        run: |          
-            terraform init `
-              -backend-config="resource_group_name=${{ secrets.resource_group_name }}" `
-              -backend-config="storage_account_name=${{ secrets.storage_account_name }}" `
-              -backend-config="container_name=${{ secrets.container_name }}" `
-              -backend-config="key=${{ inputs.tf_state_key }}"
+        run: |
+          terraform init `
+            -backend-config="resource_group_name=${{ secrets.resource_group_name }}" `
+            -backend-config="storage_account_name=${{ secrets.storage_account_name }}" `
+            -backend-config="container_name=${{ secrets.container_name }}" `
+            -backend-config="key=${{ inputs.tf_state_key }}"
 
       - name: Create Binary Plan
         run: terraform plan -out=tfplan -input=false
@@ -82,6 +82,12 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    # --- CHANGE 2: Apply job mein bhi env zaroori hai ---
+    env:
+      ARM_CLIENT_ID: ${{ secrets.client_id }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.subscription_id }}
+      ARM_TENANT_ID: ${{ secrets.tenant_id }}
+      ARM_USE_OIDC: true
     defaults:
       run:
         shell: powershell
@@ -99,8 +105,8 @@ jobs:
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.client_id }}        # Pehle inputs.client_id tha
-          tenant-id: ${{ secrets.tenant_id }}        # Pehle inputs.tenant_id tha
+          client-id: ${{ secrets.client_id }}
+          tenant-id: ${{ secrets.tenant_id }}
           subscription-id: ${{ secrets.subscription_id }}
 
       - name: Terraform Init
