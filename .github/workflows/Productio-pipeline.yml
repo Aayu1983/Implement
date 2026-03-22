@@ -5,7 +5,13 @@ permissions:
   contents: read
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
+    inputs:
+      working_directory:
+        description: 'Terraform files ki directory path dalein (e.g. ./infra/prod)'
+        required: true
+        default: '.'
+        type: string
 
 jobs:  
   Production-Deployment:      
