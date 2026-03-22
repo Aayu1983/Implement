@@ -1,28 +1,22 @@
 name: Multi-Env Infra Pipeline
 
-# 1. PEHLE YE PERMISSIONS ADD KAREIN (OIDC ke liye zaroori hai)
 permissions:
   id-token: write
   contents: read
 
 on:
-  workflow_dispatch: # Sirf manual trigger ke liye
-    inputs:
-      working_dir:
-        description: 'Terraform folder ka path (e.g. ./infra)'
-        required: true
-        default: '.' 
+  workflow_dispatch: 
 
 jobs:  
-  Production-Deployment:    
+  Production-Deployment:      
     uses: ./.github/workflows/terraform-template.yml
     with:
-      environment: 'Production'
-      client_id: ${{ vars.PROD_APP_ID }}
-      subscription_id: ${{ vars.SUBSCRIPTION_ID }}
-      tenant_id: ${{ vars.TENANT_ID }}
-      resource_group_name: ${{ vars.RESOURCE_GROUP_NAME }}
-      storage_account_name: ${{ vars.STORAGE_ACCOUNT_NAME }}
-      container_name: ${{ vars.CONTAINER_NAME }}
-      # YE LINE ADD KAREIN (tf_state_key fix):
+      environment: 'Production' 
+      working_directory: '.' 
+      client_id: ${{ secrets.CLIENT_ID }}
+      subscription_id: ${{ secrets.SUBSCRIPTION_ID }}
+      tenant_id: ${{ secrets.TENANT_ID }}
+      resource_group_name: ${{ secrets.RESOURCE_GROUP_NAME }}
+      storage_account_name: ${{ secrets.STORAGE_ACCOUNT_NAME }}
+      container_name: ${{ secrets.CONTAINER_NAME }}
       tf_state_key: 'prod.terraform.tfstate'
