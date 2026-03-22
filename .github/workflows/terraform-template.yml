@@ -2,7 +2,7 @@ name: Terraform Deployment Template
 
 on:
   workflow_call:
-    inputs:
+    inputs: # Sirf non-sensitive data
       environment:
         required: true
         type: string
@@ -10,28 +10,22 @@ on:
         required: false
         type: string
         default: '.'
-      client_id:
-        required: true
-        type: string
-      subscription_id:
-        required: true
-        type: string
-      tenant_id:
-        required: true
-        type: string
-      resource_group_name:
-        required: true
-        type: string
-      storage_account_name:
-        required: true
-        type: string
-      container_name:
-        required: true
-        type: string
       tf_state_key:
         required: true
         type: string
-
+    secrets: # <--- Sensitive data yahan aayega
+      client_id:
+        required: true
+      subscription_id:
+        required: true
+      tenant_id:
+        required: true
+      resource_group_name:
+        required: true
+      storage_account_name:
+        required: true
+      container_name:
+        required: true
 jobs:
   terraform-plan:
     name: Terraform Plan (${{ inputs.environment }})
