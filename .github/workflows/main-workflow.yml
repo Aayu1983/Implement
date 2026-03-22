@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       target_env:
-        description: 'Kaunsa environment deploy karna hai?'
+        description: 'Select environment'
         required: true
         type: choice
         options:
