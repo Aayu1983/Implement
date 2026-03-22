@@ -46,7 +46,7 @@ jobs:
           }
           echo "branch=$branch" >> $env:GITHUB_OUTPUT
           
-  terraform-plan:
+  infrastructure-validation:
     name: "Plan - ${{ inputs.environment }}"
     needs: setup
     environment: ${{ inputs.environment }}-plan
@@ -108,14 +108,14 @@ jobs:
           path: ${{ inputs.working_directory }}/tfplan
           retention-days: 1
           
-  manual-approval:
+  deployment-gatekeeper:
     needs: [setup, terraform-plan]
     uses: ./.github/workflows/approval-template.yml 
     with:
       environment: ${{ inputs.environment }}
       requestor: ${{ github.actor }}
 
-  terraform-apply:    
+  infrastructure-deployment:    
     name: "Apply - ${{ inputs.environment }}"
     needs: [terraform-plan, manual-approval]
     runs-on: [self-hosted, Windows]
