@@ -6,6 +6,11 @@ on:
       environment:
         required: true
         type: string
+      working_directory:
+        required: false
+        type: string
+        default: '.'
+        
       client_id:
         required: true
         type: string
