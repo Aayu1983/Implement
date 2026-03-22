@@ -1,0 +1,118 @@
+name: Terraform Deployment Template
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      client_id:
+        required: true
+        type: string
+      subscription_id:
+        required: true
+        type: string
+      tenant_id:
+        required: true
+        type: string
+      resource_group_name:
+        required: true
+        type: string
+      storage_account_name:
+        required: true
+        type: string
+      container_name:
+        required: true
+        type: string
+      tf_state_key: # Missing input added
+        required: true
+        type: string
+
+concurrency:
+  group: terraform-${{ inputs.environment }} # Fixed context
+  cancel-in-progress: false     
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan (${{ inputs.environment }})
+    runs-on: [self-hosted, Windows]
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ inputs.client_id }}
+          tenant-id: ${{ inputs.tenant_id }}
+          subscription-id: ${{ inputs.subscription_id }}
+
+      - name: Terraform Init
+        shell: powershell
+        run: |
+          terraform init `
+            -backend-config="resource_group_name=${{ inputs.resource_group_name }}" `
+            -backend-config="storage_account_name=${{ inputs.storage_account_name }}" `
+            -backend-config="container_name=${{ inputs.container_name }}" `
+            -backend-config="key=${{ inputs.tf_state_key }}"
+
+      - name: Terraform Validate
+        shell: powershell
+        run: terraform validate           
+
+      - name: Create Binary Plan
+        id: plan
+        shell: powershell
+        run: |
+           terraform plan -out=tfplan -input=false
+           $sha = (Get-FileHash tfplan -Algorithm SHA256).Hash
+           echo "PLAN_SHA=$sha" >> $env:GITHUB_ENV
+           Write-Host "Binary Plan SHA: $sha"
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-binary-${{ inputs.environment }}
+          path: tfplan
+          retention-days: 1
+
+  terraform-apply:
+    name: Terraform Apply (${{ inputs.environment }})
+    needs: terraform-plan
+    runs-on: [self-hosted, Windows]
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Binary Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-binary-${{ inputs.environment }}
+          path: . # Download directly to the current folder
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ inputs.client_id }}
+          tenant-id: ${{ inputs.tenant_id }}
+          subscription-id: ${{ inputs.subscription_id }}
+
+      - name: Terraform Init
+        shell: powershell
+        run: |
+          terraform init `
+            -backend-config="resource_group_name=${{ inputs.resource_group_name }}" `
+            -backend-config="storage_account_name=${{ inputs.storage_account_name }}" `
+            -backend-config="container_name=${{ inputs.container_name }}" `
+            -backend-config="key=${{ inputs.tf_state_key }}"
+
+      - name: Terraform Apply Binary
+        shell: powershell
+        run: terraform apply -auto-approve tfplan
