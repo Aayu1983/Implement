@@ -10,7 +10,6 @@ on:
         required: false
         type: string
         default: '.'
-        
       client_id:
         required: true
         type: string
@@ -29,25 +28,21 @@ on:
       container_name:
         required: true
         type: string
-      tf_state_key: # Missing input added
+      tf_state_key:
         required: true
         type: string
-
-concurrency:
-  group: terraform-${{ inputs.environment }} # Fixed context
-  cancel-in-progress: false     
 
 jobs:
   terraform-plan:
     name: Terraform Plan (${{ inputs.environment }})
     runs-on: [self-hosted, Windows]
+    permissions:
+      id-token: write
+      contents: read
     defaults:
       run:
         shell: powershell
         working-directory: ${{ inputs.working_directory }}
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -60,7 +55,6 @@ jobs:
           subscription-id: ${{ inputs.subscription_id }}
 
       - name: Terraform Init
-        shell: powershell
         run: |
           terraform init `
             -backend-config="resource_group_name=${{ inputs.resource_group_name }}" `
@@ -68,24 +62,14 @@ jobs:
             -backend-config="container_name=${{ inputs.container_name }}" `
             -backend-config="key=${{ inputs.tf_state_key }}"
 
-      - name: Terraform Validate
-        shell: powershell
-        run: terraform validate           
-
       - name: Create Binary Plan
-        id: plan
-        shell: powershell
-        run: |
-           terraform plan -out=tfplan -input=false
-           $sha = (Get-FileHash tfplan -Algorithm SHA256).Hash
-           echo "PLAN_SHA=$sha" >> $env:GITHUB_ENV
-           Write-Host "Binary Plan SHA: $sha"
+        run: terraform plan -out=tfplan -input=false
 
       - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
           name: terraform-binary-${{ inputs.environment }}
-          path: tfplan
+          path: ${{ inputs.working_directory }}/tfplan
           retention-days: 1
 
   terraform-apply:
@@ -96,6 +80,10 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    defaults:
+      run:
+        shell: powershell
+        working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -104,7 +92,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: terraform-binary-${{ inputs.environment }}
-          path: . # Download directly to the current folder
+          path: ${{ inputs.working_directory }}
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -114,7 +102,6 @@ jobs:
           subscription-id: ${{ inputs.subscription_id }}
 
       - name: Terraform Init
-        shell: powershell
         run: |
           terraform init `
             -backend-config="resource_group_name=${{ inputs.resource_group_name }}" `
@@ -123,5 +110,4 @@ jobs:
             -backend-config="key=${{ inputs.tf_state_key }}"
 
       - name: Terraform Apply Binary
-        shell: powershell
         run: terraform apply -auto-approve tfplan
