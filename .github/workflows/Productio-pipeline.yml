@@ -1,0 +1,21 @@
+name: Multi-Env Infra Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+jobs: 
+  # Production Environment
+ Production-Deployment:    
+    uses: ./.github/workflows/terraform-template.yml
+    with:
+      environment: 'Production'
+      client_id: ${{ vars.PROD_APP_ID }}
+      subscription_id: ${{ vars.SUBSCRIPTION_ID }}
+      tenant_id: ${{ vars.TENANT_ID }}
+      resource_group_name: ${{ vars.RESOURCE_GROUP_NAME }}
+      storage_account_name: ${{ vars.STORAGE_ACCOUNT_NAME }}
+      container_name: ${{ vars.CONTAINER_NAME }}
+
+  
