@@ -1,5 +1,5 @@
 # Carrix uat env
-name: Multi-Env Infra Pipeline
+name: Carrix uat Infra Pipeline
 
 permissions:
   id-token: write
