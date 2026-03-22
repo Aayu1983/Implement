@@ -18,7 +18,7 @@ jobs:
     uses: ./.github/workflows/terraform-template.yml
     with:
       environment: 'production' 
-      working_directory: '.' 
+      working_directory: ${{ github.event.inputs.working_directory }}
       tf_state_key: 'prod.terraform.tfstate'
     secrets: 
       client_id: ${{ secrets.CLIENT_ID }}
