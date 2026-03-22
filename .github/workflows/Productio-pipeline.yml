@@ -6,9 +6,12 @@ permissions:
   contents: read
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_dispatch: # Sirf manual trigger ke liye
+    inputs:
+      working_dir:
+        description: 'Terraform folder ka path (e.g. ./infra)'
+        required: true
+        default: '.' 
 
 jobs:  
   Production-Deployment:    
