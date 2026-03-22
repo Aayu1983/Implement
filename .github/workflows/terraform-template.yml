@@ -41,6 +41,10 @@ jobs:
   terraform-plan:
     name: Terraform Plan (${{ inputs.environment }})
     runs-on: [self-hosted, Windows]
+    defaults:
+      run:
+        shell: powershell
+        working-directory: ${{ inputs.working_directory }}
     permissions:
       id-token: write
       contents: read
