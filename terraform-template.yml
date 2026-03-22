@@ -15,7 +15,6 @@ on:
       tenant_id:
         required: true
         type: string
-      # Backend configuration inputs
       resource_group_name:
         required: true
         type: string
@@ -25,8 +24,12 @@ on:
       container_name:
         required: true
         type: string
+      tf_state_key: # Missing input added
+        required: true
+        type: string
+
 concurrency:
-  group: terraform-${{ github.event.inputs.target_env }}
+  group: terraform-${{ inputs.environment }} # Fixed context
   cancel-in-progress: false     
 
 jobs:
@@ -50,36 +53,25 @@ jobs:
       - name: Terraform Init
         shell: powershell
         run: |
-          # dynamic backend configuration passi
           terraform init `
             -backend-config="resource_group_name=${{ inputs.resource_group_name }}" `
             -backend-config="storage_account_name=${{ inputs.storage_account_name }}" `
             -backend-config="container_name=${{ inputs.container_name }}" `
-            
-    - name: Terraform Validate
+            -backend-config="key=${{ inputs.tf_state_key }}"
+
+      - name: Terraform Validate
         shell: powershell
         run: terraform validate           
 
-      # --- BINARY GENERATION ---
       - name: Create Binary Plan
         id: plan
         shell: powershell
         run: |
            terraform plan -out=tfplan -input=false
-    
-          # SHA task for Integrity check           
-          $sha = (Get-FileHash tfplan -Algorithm SHA256).Hash
-          echo "PLAN_SHA=$sha" >> $env:GITHUB_ENV
-          Write-Host "Binary Plan SHA: $sha"
+           $sha = (Get-FileHash tfplan -Algorithm SHA256).Hash
+           echo "PLAN_SHA=$sha" >> $env:GITHUB_ENV
+           Write-Host "Binary Plan SHA: $sha"
 
-      # --- NOTIFICATION (No Approval Here) ---
-      - name: Notify Plan Details
-        shell: powershell
-        run: |
-          Write-Host " Notification: Binary Plan generated for ${{ inputs.environment }} by ${{ github.actor }}"
-          Write-Host "SHA Signature: ${{ env:PLAN_SHA }}"
-
-      # --- BINARY ARTIFACT UPLOAD ---
       - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -91,7 +83,7 @@ jobs:
     name: Terraform Apply (${{ inputs.environment }})
     needs: terraform-plan
     runs-on: [self-hosted, Windows]
-    environment: ${{ inputs.environment }} # YAHAN APPROVAL AAYEGA
+    environment: ${{ inputs.environment }}
     permissions:
       id-token: write
       contents: read
@@ -99,11 +91,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # --- BINARY DOWNLOAD ---
       - name: Download Binary Artifact
         uses: actions/download-artifact@v4
         with:
           name: terraform-binary-${{ inputs.environment }}
+          path: . # Download directly to the current folder
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -115,15 +107,12 @@ jobs:
       - name: Terraform Init
         shell: powershell
         run: |
-          # dynamic backend configuration pass
           terraform init `
             -backend-config="resource_group_name=${{ inputs.resource_group_name }}" `
             -backend-config="storage_account_name=${{ inputs.storage_account_name }}" `
             -backend-config="container_name=${{ inputs.container_name }}" `
             -backend-config="key=${{ inputs.tf_state_key }}"
 
-      # --- BINARY APPLY ---
       - name: Terraform Apply Binary
         shell: powershell
-        run: |          
-          terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve tfplan
