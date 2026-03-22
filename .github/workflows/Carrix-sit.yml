@@ -4,7 +4,6 @@ name: Carrix sit  Infra Pipeline
 permissions:
   id-token: write
   contents: read
-
 on:
   workflow_dispatch:
     inputs:
@@ -14,8 +13,6 @@ on:
         type: choice
         options:
           - sit
-          - uat
-          - prod
       working_directory:
         description: 'Terraform directory path'
         required: true
