@@ -65,10 +65,9 @@ jobs:
         id: plan
         shell: powershell
         run: |
-           erraform plan -out=tfplan -input=false
+           terraform plan -out=tfplan -input=false
     
-          # SHA task for Integrity check 
-          
+          # SHA task for Integrity check           
           $sha = (Get-FileHash tfplan -Algorithm SHA256).Hash
           echo "PLAN_SHA=$sha" >> $env:GITHUB_ENV
           Write-Host "Binary Plan SHA: $sha"
