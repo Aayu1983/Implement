@@ -15,7 +15,7 @@ on:
 
 jobs:  
   Production-Deployment:      
-    uses: ./.github/workflows/terraform-template.yml
+    uses: ./.github/workflows/terraform-temp-first.yml
     with:
       environment: 'production' 
       working_directory: ${{ github.event.inputs.working_directory }}
