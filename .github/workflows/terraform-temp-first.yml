@@ -49,7 +49,7 @@ jobs:
   terraform-plan:
     name: "Plan - ${{ inputs.environment }}"
     needs: setup
-    environment: ${{ inputs.environment }}
+    environment: ${{ inputs.environment }}-plan
     runs-on: [self-hosted, Windows]
     outputs:
       plan_commit_sha: ${{ steps.capture_sha.outputs.sha }} # Fix: Mapping SHA to job output
