@@ -15,6 +15,7 @@ jobs:
       client_id: 'SIT_APP_ID'
       subscription_id: 'SUBSCRIPTION_ID'
       tenant_id: 'TENANT_ID'
+      resource_group_name: 'myrg'
 
   # UAT Environment
   UAT-Deployment:
@@ -25,6 +26,7 @@ jobs:
       client_id: 'UAT_APP_ID'
       subscription_id: 'SUBSCRIPTION_ID'
       tenant_id: 'TENANT_ID'
+      resource_group_name: 'myrg'
 
   # Production Environment
   Production-Deployment:
@@ -35,6 +37,7 @@ jobs:
       client_id: 'PROD_APP_ID'
       subscription_id: 'SUBSCRIPTION_ID'
       tenant_id: 'TENANT_ID'
+      resource_group_name: 'myrg'
 
   # DR-Hub Environment
   DRHub-Deployment:
@@ -45,3 +48,4 @@ jobs:
       client_id: 'DR_APP_ID'
       subscription_id: 'SUBSCRIPTION_ID'
       tenant_id: 'TENANT_ID'
+      resource_group_name: 'myrg'
