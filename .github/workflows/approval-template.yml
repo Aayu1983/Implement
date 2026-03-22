@@ -1,0 +1,27 @@
+name: Manual Approval Template
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      requestor:
+        required: true
+        type: string
+
+jobs:
+  gatekeeper:
+    name: "Approval for ${{ inputs.environment }}"
+    runs-on: [self-hosted, Windows]    
+    environment: ${{ inputs.environment }} 
+    steps:
+      - name: Display Deployment Details
+        shell: powershell
+        run: |
+          Write-Host "--"
+          Write-Host "DEPLOYMENT REQUEST DETAILS"
+          Write-Host "Requested By: ${{ inputs.requestor }}"
+          Write-Host "Target Environment: ${{ inputs.environment }}"
+          Write-Host "Status: Awaiting Approval..."
+          Write-Host "----------------------------------------------"
