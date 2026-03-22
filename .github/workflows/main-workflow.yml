@@ -1,0 +1,46 @@
+# Multi-Env Infra Pipeline (main.yml)
+name: Multi-Env Infra Pipeline
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      working_directory:
+        description: 'Terraform files ki directory path dalein (e.g. ./infra/prod)'
+        required: true
+        default: '.'
+        type: string
+jobs:
+  # SIT Environment
+  SIT-Deployment:
+    if: github.ref_name == 'sit'
+    uses: ./.github/workflows/terraform-template-multi.yml
+    with:
+      environment: 'sit'
+      working_directory: ${{ github.event.inputs.working_directory }}
+      tf_state_key: 'sit.terraform.tfstate'
+    secrets: inherit
+
+  # UAT Environment
+  UAT-Deployment:
+    if: github.ref_name == 'uat'
+    uses: ./.github/workflows/terraform-template-multi.yml
+    with:
+      environment: 'uat'
+      working_directory: ${{ github.event.inputs.working_directory }}
+      tf_state_key: 'uat.terraform.tfstate'
+    secrets: inherit
+
+  # Production/DRHub Environment (Main Branch)
+  Prod-DRHub-Deployment:
+    if: github.ref_name == 'main'
+    uses: ./.github/workflows/terraform-template-multi.yml
+    with:
+      environment: 'production' # Isse input se dynamic bhi kar sakte ho
+      working_directory: ${{ github.event.inputs.working_directory }}
+      tf_state_key: 'prod.terraform.tfstate'
+    secrets: inherit
+  
