@@ -1,4 +1,4 @@
-name: Terraform Deployment Template
+name: Terraform Deployment Template multi
 
 on:
   workflow_call:
@@ -38,8 +38,7 @@ jobs:
         id: determine_branch
         shell: powershell
         run: |
-          # Use inputs.environment instead of github.event.inputs
-          $env_input = "${{ inputs.environment }}"
+          $env_input = "${{ inputs.environment }}".ToLower()
           if ($env_input -eq "production" -or $env_input -eq "drhub") {
               $branch = "main"
           } else {
@@ -50,9 +49,10 @@ jobs:
   terraform-plan:
     name: "Plan - ${{ inputs.environment }}"
     needs: setup
-    # Environment context yahan zaroori hai secrets access ke liye
     environment: ${{ inputs.environment }}
     runs-on: [self-hosted, Windows]
+    outputs:
+      plan_commit_sha: ${{ steps.capture_sha.outputs.sha }} # Fix: Mapping SHA to job output
     permissions:
       id-token: write
       contents: read
@@ -65,6 +65,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.setup.outputs.selected_branch }}
+
+      - name: Capture Exact Commit SHA
+        id: capture_sha
+        shell: powershell
+        run: |
+          $sha = (git rev-parse HEAD).Trim()
+          echo "sha=$sha" >> $env:GITHUB_OUTPUT
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -117,7 +124,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.setup.outputs.selected_branch }}
+          ref: ${{ needs.terraform-plan.outputs.plan_commit_sha }} # Now this will work
 
       - name: Download Binary Artifact
         uses: actions/download-artifact@v4
