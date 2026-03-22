@@ -22,7 +22,7 @@ on:
 jobs:
   # Production Job
   Prod-Deployment:
-    if: github.event.inputs.target_env == 'prod'
+    if: github.event.inputs.target_env == 'production'
     uses: ./.github/workflows/terraform-template-multi.yml
     with:
       environment: 'production'
