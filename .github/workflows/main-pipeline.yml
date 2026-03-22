@@ -7,30 +7,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  # SIT Environment
-  SIT-Deployment:
-    uses: ./.github/workflows/terraform-template.yml
-    with:
-      environment: 'SIT'
-      client_id: 'SIT_APP_ID'
-      subscription_id: 'SUBSCRIPTION_ID'
-      tenant_id: 'TENANT_ID'
-      resource_group_name: 'myrg'
+  
 
-  # UAT Environment
-  UAT-Deployment:
-    needs: SIT-Deployment
-    uses: ./.github/workflows/terraform-template.yml
-    with:
-      environment: 'UAT'
-      client_id: 'UAT_APP_ID'
-      subscription_id: 'SUBSCRIPTION_ID'
-      tenant_id: 'TENANT_ID'
-      resource_group_name: 'myrg'
-
+ 
   # Production Environment
   Production-Deployment:
-    needs: UAT-Deployment
     uses: ./.github/workflows/terraform-template.yml
     with:
       environment: 'Production'
@@ -39,13 +20,4 @@ jobs:
       tenant_id: 'TENANT_ID'
       resource_group_name: 'myrg'
 
-  # DR-Hub Environment
-  DRHub-Deployment:
-    needs: Production-Deployment
-    uses: ./.github/workflows/terraform-template.yml
-    with:
-      environment: 'DRHub'
-      client_id: 'DR_APP_ID'
-      subscription_id: 'SUBSCRIPTION_ID'
-      tenant_id: 'TENANT_ID'
-      resource_group_name: 'myrg'
+  
