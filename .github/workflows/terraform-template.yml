@@ -31,7 +31,7 @@ jobs:
   terraform-plan:
     name: Terraform Plan (${{ inputs.environment }})
     runs-on: [self-hosted, Windows]
-    #environment: ${{ inputs.environment }}
+    environment: ${{ inputs.environment }}
     permissions:
       id-token: write
       contents: read
