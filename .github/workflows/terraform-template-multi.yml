@@ -1,4 +1,4 @@
-name: Terraform Deployment Template multi
+name: Terraform-Template-Muli-ENV
 
 on:
   workflow_call:
