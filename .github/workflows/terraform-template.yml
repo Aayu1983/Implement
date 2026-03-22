@@ -1,121 +1,225 @@
-name: Terraform Deployment Template
-
 on:
+
   workflow_call:
-    inputs:
+
+    inputs: # Sirf non-sensitive data
+
       environment:
+
         required: true
+
         type: string
+
       working_directory:
+
         required: false
+
         type: string
+
         default: '.'
+
       tf_state_key:
+
         required: true
+
         type: string
-    secrets:
+
+    secrets: # <--- Sensitive data yahan aayega
+
       client_id:
+
         required: true
+
       subscription_id:
+
         required: true
+
       tenant_id:
+
         required: true
+
       resource_group_name:
+
         required: true
+
       storage_account_name:
+
         required: true
+
       container_name:
+
         required: true
+
+    
 
 jobs:
+
   terraform-plan:
+
     name: Terraform Plan (${{ inputs.environment }})
+
     runs-on: [self-hosted, Windows]
+
     environment: ${{ inputs.environment }}
+
     permissions:
+
       id-token: write
+
       contents: read
-    # --- CHANGE 1: Job level env variables ---
-    env:
-      ARM_CLIENT_ID: ${{ secrets.client_id }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.subscription_id }}
-      ARM_TENANT_ID: ${{ secrets.tenant_id }}
-      ARM_USE_OIDC: true
+
     defaults:
+
       run:
+
         shell: powershell
+
         working-directory: ${{ inputs.working_directory }}
+
     steps:
+
       - name: Checkout Code
+
         uses: actions/checkout@v4
 
+
+
       - name: Azure Login (OIDC)
+
         uses: azure/login@v2
+
         with:
-          client-id: ${{ secrets.client_id }}
-          tenant-id: ${{ secrets.tenant_id }}
+
+          client-id: ${{ secrets.client_id }}        # Pehle inputs.client_id tha
+
+          tenant-id: ${{ secrets.tenant_id }}        # Pehle inputs.tenant_id tha
+
           subscription-id: ${{ secrets.subscription_id }}
 
+
+
       - name: Terraform Init
-        run: |
-          terraform init `
-            -backend-config="resource_group_name=${{ secrets.resource_group_name }}" `
-            -backend-config="storage_account_name=${{ secrets.storage_account_name }}" `
-            -backend-config="container_name=${{ secrets.container_name }}" `
-            -backend-config="key=${{ inputs.tf_state_key }}"
+
+        env:
+
+          ARM_CLIENT_ID: ${{ secrets.client_id }}
+
+          ARM_SUBSCRIPTION_ID: ${{ secrets.subscription_id }}
+
+          ARM_TENANT_ID: ${{ secrets.tenant_id }}
+
+          ARM_USE_OIDC: true
+
+      
+
+        run: |          
+
+            terraform init `
+
+              -backend-config="resource_group_name=${{ secrets.resource_group_name }}" `
+
+              -backend-config="storage_account_name=${{ secrets.storage_account_name }}" `
+
+              -backend-config="container_name=${{ secrets.container_name }}" `
+
+              -backend-config="key=${{ inputs.tf_state_key }}"
+
+
 
       - name: Create Binary Plan
+
         run: terraform plan -out=tfplan -input=false
 
+
+
       - name: Upload Binary Artifact
+
         uses: actions/upload-artifact@v4
+
         with:
+
           name: terraform-binary-${{ inputs.environment }}
+
           path: ${{ inputs.working_directory }}/tfplan
+
           retention-days: 1
 
+
+
   terraform-apply:
+
     name: Terraform Apply (${{ inputs.environment }})
+
     needs: terraform-plan
+
     runs-on: [self-hosted, Windows]
+
     environment: ${{ inputs.environment }}
+
     permissions:
+
       id-token: write
+
       contents: read
-    # --- CHANGE 2: Apply job mein bhi env zaroori hai ---
-    env:
-      ARM_CLIENT_ID: ${{ secrets.client_id }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.subscription_id }}
-      ARM_TENANT_ID: ${{ secrets.tenant_id }}
-      ARM_USE_OIDC: true
+
     defaults:
+
       run:
+
         shell: powershell
+
         working-directory: ${{ inputs.working_directory }}
+
     steps:
+
       - name: Checkout Code
+
         uses: actions/checkout@v4
 
+
+
       - name: Download Binary Artifact
+
         uses: actions/download-artifact@v4
+
         with:
+
           name: terraform-binary-${{ inputs.environment }}
+
           path: ${{ inputs.working_directory }}
 
+
+
       - name: Azure Login (OIDC)
+
         uses: azure/login@v2
+
         with:
-          client-id: ${{ secrets.client_id }}
-          tenant-id: ${{ secrets.tenant_id }}
+
+          client-id: ${{ secrets.client_id }}        # Pehle inputs.client_id tha
+
+          tenant-id: ${{ secrets.tenant_id }}        # Pehle inputs.tenant_id tha
+
           subscription-id: ${{ secrets.subscription_id }}
 
+
+
       - name: Terraform Init
+
         run: |
+
           terraform init `
+
             -backend-config="resource_group_name=${{ secrets.resource_group_name }}" `
+
             -backend-config="storage_account_name=${{ secrets.storage_account_name }}" `
+
             -backend-config="container_name=${{ secrets.container_name }}" `
+
             -backend-config="key=${{ inputs.tf_state_key }}"
 
+
+
       - name: Terraform Apply Binary
+
         run: terraform apply -auto-approve tfplan
