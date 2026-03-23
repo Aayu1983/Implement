@@ -25,13 +25,20 @@ jobs:
         id: branch_logic
         shell: powershell
         run: | 
-          $env = "${{ inputs.environment }}".ToLower()
-          $actual = "${{ github.ref_name }}".ToLower()             
-          $expected = if ($env -match "production|drhub") { "main" } else { $env }          
-          if ($actual -ne $expected) { 
-              Write-Host "::error::Mismatch! Env $env needs $expected branch, but you are on $actual."
-               exit 1           }
-          "branch=$expected" >> $env:GITHUB_OUTPUT
+          # 1. Inputs normalize 
+            $envInput = "${{ inputs.environment }}".ToLower()
+            $actualBranch = "${{ github.ref_name }}".ToLower()    
+            # 2. Logic: Define Expected Branch
+            $expectedBranch = if ($envInput -match "production|drhub") { "main" } else { $envInput }
+              Write-Host "Checking: Environment [$envInput] needs Branch [$expectedBranch]. You are on [$actualBranch]."
+             # 3. THE KILL SWITCH 
+               if ($actualBranch -ne $expectedBranch) {
+               Write-Host "::error::VALIDATION FAILED! Cannot run $envInput from $actualBranch branch."
+               exit 1
+              }
+             # 4. Success Path
+              Write-Host "SUCCESS: Deployment Allowed."
+              "branch=$expectedBranch" >> $env:GITHUB_OUTPUT
           
           
   infrastructure-validation:
