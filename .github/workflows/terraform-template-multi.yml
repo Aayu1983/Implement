@@ -25,34 +25,13 @@ jobs:
         id: branch_logic
         shell: powershell
         run: | 
-          # 1. Inputs normalize karein
-          $envInput = "${{ inputs.environment }}".ToLower()
-          $actualBranch = "${{ github.ref_name }}".ToLower()
-
-          # 2. Define Allowed Mapping
-          if ($envInput -match "production|drhub") {
-              $expectedBranch = "main"
-          } else {
-              $expectedBranch = $envInput
-          }
-
-          Write-Host "Checking: Environment ['$envInput'] must run from Branch ['$expectedBranch']"
-          Write-Host "Actual Branch detected: ['$actualBranch']"
-
-          # 3. THE "STOP" SIGNAL (Ye step pipeline ko rokega)
-          if ($actualBranch -ne $expectedBranch) {
-              Write-Host "::error::VALIDATION FAILED!"
-              Write-Host "::error::Environment '$envInput' can ONLY be triggered from '$expectedBranch' branch."
-              Write-Host "::error::Current branch is '$actualBranch'. Stopping pipeline."
-              
-              # Bina iske pipeline FAIL nahi hogi
-              exit 1 
-          }
-
-          # 4. Success Path
-          Write-Host "SUCCESS: Validation passed."
-          "branch=$expectedBranch" >> $env:GITHUB_OUTPUT
-          
+          $env = "${{ inputs.environment }}".ToLower()
+          $actual = "${{ github.ref_name }}".ToLower()             
+          $expected = if ($env -match "production|drhub") { "main" } else { $env }          
+          if ($actual -ne $expected) { 
+              Write-Host "::error::Mismatch! Env $env needs $expected branch, but you are on $actual."
+               exit 1           }
+          "branch=$expected" >> $env:GITHUB_OUTPUT
           
           
   infrastructure-validation:
