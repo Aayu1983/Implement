@@ -27,6 +27,7 @@ jobs:
     with:
       environment: ${{ github.event.inputs.target_env }}
       working_directory: ${{ github.event.inputs.working_directory }}
+      tf_state_key: "${{ github.event.inputs.target_env }}.tfstate"
 
     secrets:
       client_id: ${{ secrets.CLIENT_ID_JO_APNE_SETTINGS_ME_RAKHA_HAI }}
