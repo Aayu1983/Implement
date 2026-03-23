@@ -25,30 +25,32 @@ jobs:
         id: branch_logic
         shell: powershell
         run: |         
+          # 1. Inputs aur Current Branch ko pakdein
           $envInput = "${{ inputs.environment }}".ToLower()
           $actualBranch = "${{ github.ref_name }}".ToLower()
-          Write-Host "Triggered Environment: $envInput"
-          Write-Host "Triggered from Branch: $actualBranch"          
+
+          Write-Host "Checking: Env ['$envInput'] triggered from Branch ['$actualBranch']"
+
+          # 2. Logic define karein: Kaunsi branch allowed hai
           if ($envInput -match "production|drhub") {
               $expectedBranch = "main"
           }
-          elseif ($envInput -eq "sit") {
-              $expectedBranch = "sit"
-          }
-          elseif ($envInput -eq "uat") {
-              $expectedBranch = "uat"
-          }          
           else {
-              Write-Error "Unknown Environment: $envInput"
-              exit 1
-          }         
+              $expectedBranch = $envInput
+          }
+
+          # 3. STRICT CHECK (Ye pipeline ko rokega)
           if ($actualBranch -ne $expectedBranch) {
               Write-Host "::error::VALIDATION FAILED!"
-              Write-Host "::error::Environment '$envInput' can ONLY be deployed from '$expectedBranch' branch."
-              Write-Host "::error::You are trying to run it from '$actualBranch'. Access Denied."          
+              Write-Host "::error::Environment '$envInput' can ONLY run from branch '$expectedBranch'."
+              Write-Host "::error::You selected '$actualBranch'. Stopping pipeline."
+              
+              # Sabse important line: Pipeline ko fail karne ke liye
               exit 1 
-          }         
-          Write-Host "SUCCESS: Branch validation passed for $envInput."
+          }
+
+          # 4. Agar match ho gaya to output set karein
+          Write-Host "Success: Branch validation passed."
           "branch=$expectedBranch" >> $env:GITHUB_OUTPUT
           
   infrastructure-validation:
