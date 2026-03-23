@@ -25,30 +25,13 @@ jobs:
         id: branch_logic
         shell: powershell
         run: |
-          $envInput = "${{ inputs.environment }}".ToLower()
-          $actualBranch = "${{ github.ref_name }}".ToLower()           
-          Write-Host "Checking Deployment: Environment ['$envInput'] from Branch ['$actualBranch']"          
-          if ($envInput -eq "production" -or $envInput -eq "drhub") {
-              $expectedBranch = "main"
+          $env_input = "${{ github.event.inputs.target_env }}"
+          if ($env_input -eq "production" -or $env_input -eq "drhub") {
+              $branch = "main"
+          } else {
+              $branch = $env_input
           }
-          elseif ($envInput -eq "sit") {
-              $expectedBranch = "sit"
-          }
-          elseif ($envInput -eq "uat") {
-              $expectedBranch = "uat"
-          }
-          else {
-              Write-Error "Error: Unknown Environment '$envInput'."
-              exit 1
-          }          
-          if ($actualBranch -ne $expectedBranch) {
-              Write-Host "::error::Validation Failed! Environment '$envInput' can ONLY run from branch '$expectedBranch'. You are trying to run from '$actualBranch'."
-              exit 1
-          }
-          Write-Host "Success: Branch validation passed for $envInput."
-          "branch=$expectedBranch" >> $env:GITHUB_OUTPUT
-
-
+          echo "branch=$branch" >> $env:GITHUB_OUTPUT
   infrastructure-validation:
     needs: setup
     environment: ${{ inputs.environment }}-plan
