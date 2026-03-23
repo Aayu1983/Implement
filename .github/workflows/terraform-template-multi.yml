@@ -24,41 +24,36 @@ jobs:
       - name: Determine Branch Mapping
         id: branch_logic
         shell: powershell
-        run: |         
-          
+        run: | 
+          # 1. Inputs normalize karein
           $envInput = "${{ inputs.environment }}".ToLower()
           $actualBranch = "${{ github.ref_name }}".ToLower()
 
-          Write-Host "--- Deployment Validation ---"
-          Write-Host "Target Environment: $envInput"
-          Write-Host "Current Git Branch: $actualBranch"
-
-          
-          if ($envInput -eq "production" -or $envInput -eq "drhub") {
+          # 2. Define Allowed Mapping
+          if ($envInput -match "production|drhub") {
               $expectedBranch = "main"
-          }
-          elseif ($envInput -eq "sit") {
-              $expectedBranch = "sit"
-          }
-          elseif ($envInput -eq "uat") {
-              $expectedBranch = "uat"
-          }
-          else {
-              Write-Error "CRITICAL: Unknown Environment '$envInput'."
-              exit 1
+          } else {
+              $expectedBranch = $envInput
           }
 
-          
+          Write-Host "Checking: Environment ['$envInput'] must run from Branch ['$expectedBranch']"
+          Write-Host "Actual Branch detected: ['$actualBranch']"
+
+          # 3. THE "STOP" SIGNAL (Ye step pipeline ko rokega)
           if ($actualBranch -ne $expectedBranch) {
               Write-Host "::error::VALIDATION FAILED!"
-              Write-Host "::error::Environment '$envInput' is ONLY allowed from '$expectedBranch' branch."
-              Write-Host "::error::You are currently on '$actualBranch'. Stopping execution."           
+              Write-Host "::error::Environment '$envInput' can ONLY be triggered from '$expectedBranch' branch."
+              Write-Host "::error::Current branch is '$actualBranch'. Stopping pipeline."
+              
+              # Bina iske pipeline FAIL nahi hogi
               exit 1 
           }
 
-         
-          Write-Host "SUCCESS: Branch and Environment are aligned."
+          # 4. Success Path
+          Write-Host "SUCCESS: Validation passed."
           "branch=$expectedBranch" >> $env:GITHUB_OUTPUT
+          
+          
           
   infrastructure-validation:
     needs: setup
