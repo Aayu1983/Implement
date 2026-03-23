@@ -7,7 +7,7 @@ terraform {
     }
   }
   backend "azurerm" {
-    key = "rg.terraform.tfstate"
+    key = "rgsit.terraform.tfstate"
   }
 }
 provider "azurerm" {
