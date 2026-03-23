@@ -4,8 +4,7 @@ on:
   workflow_call:
     inputs:
       environment: { required: true, type: string }
-      working_directory: { required: false, type: string, default: '.' }
-      #tf_state_key: { required: true, type: string }
+      working_directory: { required: false, type: string, default: '.' }  
     secrets:
       client_id: { required: true }
       subscription_id: { required: true }
