@@ -25,32 +25,41 @@ jobs:
         id: branch_logic
         shell: powershell
         run: |         
-          # 1. Inputs aur Current Branch ko pakdein
+          # 1. Normalize inputs to lowercase to avoid case-sensitivity issues
           $envInput = "${{ inputs.environment }}".ToLower()
           $actualBranch = "${{ github.ref_name }}".ToLower()
 
-          Write-Host "Checking: Env ['$envInput'] triggered from Branch ['$actualBranch']"
+          Write-Host "--- Deployment Validation ---"
+          Write-Host "Target Environment: $envInput"
+          Write-Host "Current Git Branch: $actualBranch"
 
-          # 2. Logic define karein: Kaunsi branch allowed hai
-          if ($envInput -match "production|drhub") {
+          # 2. Define the ONLY allowed branch mapping
+          if ($envInput -eq "production" -or $envInput -eq "drhub") {
               $expectedBranch = "main"
           }
+          elseif ($envInput -eq "sit") {
+              $expectedBranch = "sit"
+          }
+          elseif ($envInput -eq "uat") {
+              $expectedBranch = "uat"
+          }
           else {
-              $expectedBranch = $envInput
+              Write-Error "CRITICAL: Unknown Environment '$envInput' provided."
+              exit 1
           }
 
-          # 3. STRICT CHECK (Ye pipeline ko rokega)
+          # 3. STRICT ENFORCEMENT: Compare Actual vs Expected
           if ($actualBranch -ne $expectedBranch) {
               Write-Host "::error::VALIDATION FAILED!"
-              Write-Host "::error::Environment '$envInput' can ONLY run from branch '$expectedBranch'."
-              Write-Host "::error::You selected '$actualBranch'. Stopping pipeline."
+              Write-Host "::error::Environment '$envInput' is strictly mapped to the '$expectedBranch' branch."
+              Write-Host "::error::You are attempting to deploy from '$actualBranch'. Access Denied."
               
-              # Sabse important line: Pipeline ko fail karne ke liye
+              # This command stops the pipeline immediately
               exit 1 
           }
 
-          # 4. Agar match ho gaya to output set karein
-          Write-Host "Success: Branch validation passed."
+          # 4. Success Path
+          Write-Host "SUCCESS: Branch and Environment are aligned."
           "branch=$expectedBranch" >> $env:GITHUB_OUTPUT
           
   infrastructure-validation:
