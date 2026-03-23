@@ -25,10 +25,16 @@ jobs:
         id: branch_logic
         shell: powershell
         run: |
-          $env = "${{ inputs.environment }}".ToLower()
-          # Mapping logic in 1 line
-          $branch = if ($env -match "production|drhub") { "main" } else { $env }
-          "branch=$branch" >> $env:GITHUB_OUTPUT
+          $envInput = "${{ inputs.environment }}".ToLower()
+          # github.event.ref_name wo branch hai jo user ne dropdown (UI) se select ki
+          $actualBranch = "${{ github.event.ref_name }}"           
+          $expectedBranch = if ($envInput -match "production|drhub") { "main" } else { $envInput }          
+          if ($actualBranch -ne $expectedBranch) {
+              Write-Host "::error::Validation Failed! Environment '$envInput' can only run from branch '$expectedBranch'. You selected '$actualBranch'."
+              exit 1
+          }
+          Write-Host "Success: Deployment of $envInput is allowed from $actualBranch branch."
+          "branch=$expectedBranch" >> $env:GITHUB_OUTPUT
 
   infrastructure-validation:
     needs: setup
