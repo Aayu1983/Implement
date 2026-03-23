@@ -1,0 +1,118 @@
+name: Terraform-Template-Multi-ENV
+
+on:
+  workflow_call:
+    inputs:
+      environment: { required: true, type: string }
+      working_directory: { required: false, type: string, default: '.' }
+      #tf_state_key: { required: true, type: string }
+    secrets:
+      client_id: { required: true }
+      subscription_id: { required: true }
+      tenant_id: { required: true }
+      resource_group_name: { required: true }
+      storage_account_name: { required: true }
+      container_name: { required: true }
+
+jobs:
+  setup:
+    name: "Init - ${{ inputs.environment }}"
+    runs-on: [self-hosted, Windows]
+    outputs:
+      selected_branch: ${{ steps.branch_logic.outputs.branch }}
+    steps:
+      - name: Determine Branch Mapping
+        id: branch_logic
+        shell: powershell
+        run: |
+          $env = "${{ inputs.environment }}".ToLower()
+          # Mapping logic in 1 line
+          $branch = if ($env -match "production|drhub") { "main" } else { $env }
+          "branch=$branch" >> $env:GITHUB_OUTPUT
+
+  infrastructure-validation:
+    needs: setup
+    environment: ${{ inputs.environment }}-plan
+    runs-on: [self-hosted, Windows]
+    outputs:
+      plan_sha: ${{ steps.get_sha.outputs.sha }}
+    defaults:
+      run:
+        shell: powershell
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.setup.outputs.selected_branch }}
+
+      - id: get_sha
+        run: |
+          $sha = (git rev-parse HEAD).Trim()
+          "sha=$sha" >> $env:GITHUB_OUTPUT
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.client_id }}
+          tenant-id: ${{ secrets.tenant_id }}
+          subscription-id: ${{ secrets.subscription_id }}
+
+      - name: Terraform Init & Plan
+        env:
+          ARM_CLIENT_ID: ${{ secrets.client_id }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.subscription_id }}
+          ARM_TENANT_ID: ${{ secrets.tenant_id }}
+          ARM_USE_OIDC: true
+        run: |
+          terraform init `
+            -backend-config="resource_group_name=${{ secrets.resource_group_name }}" `
+            -backend-config="storage_account_name=${{ secrets.storage_account_name }}" `
+            -backend-config="container_name=${{ secrets.container_name }}" `
+            
+          terraform plan -out=tfplan -input=false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tf-bin-${{ inputs.environment }}
+          path: ${{ inputs.working_directory }}/tfplan
+          retention-days: 1
+
+  deployment-gatekeeper:
+    needs: [setup, infrastructure-validation]
+    uses: ./.github/workflows/approval-template.yml
+    with:
+      environment: ${{ inputs.environment }}
+      requestor: ${{ github.actor }}
+
+  infrastructure-deployment:
+    needs: [infrastructure-validation, deployment-gatekeeper]
+    runs-on: [self-hosted, Windows]
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        shell: powershell
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.infrastructure-validation.outputs.plan_sha }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tf-bin-${{ inputs.environment }}
+          path: ${{ inputs.working_directory }}
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.client_id }}
+          tenant-id: ${{ secrets.tenant_id }}
+          subscription-id: ${{ secrets.subscription_id }}
+
+      - name: Terraform Apply
+        env:
+          ARM_CLIENT_ID: ${{ secrets.client_id }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.subscription_id }}
+          ARM_TENANT_ID: ${{ secrets.tenant_id }}
+          ARM_USE_OIDC: true
+        run: |
+          terraform init -backend=false # Fast init for apply
+          terraform apply -auto-approve tfplan
