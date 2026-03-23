@@ -30,9 +30,10 @@ jobs:
       tf_state_key: "${{ github.event.inputs.target_env }}.tfstate"
 
     secrets:
-      client_id: ${{ secrets.CLIENT_ID }}}
+      client_id: ${{ secrets.CLIENT_ID }}
       subscription_id: ${{ secrets.SUBSCRIPTION_ID }}
       tenant_id: ${{ secrets.TENANT_ID }}
       resource_group_name: ${{ secrets.RESOURCE_GROUP_NAME }}
       storage_account_name: ${{ secrets.STORAGE_ACCOUNT_NAME }}
       container_name: ${{ secrets.CONTAINER_NAME }}
+     
