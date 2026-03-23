@@ -24,15 +24,11 @@ jobs:
       - name: Determine Branch Mapping
         id: branch_logic
         shell: powershell
-        run: |
-          # 1. Inputs ko normalize karein
+        run: |         
           $envInput = "${{ inputs.environment }}".ToLower()
           $actualBranch = "${{ github.ref_name }}".ToLower()
-
           Write-Host "Triggered Environment: $envInput"
-          Write-Host "Triggered from Branch: $actualBranch"
-
-          # 2. Logic: Define Allowed Branch Mapping
+          Write-Host "Triggered from Branch: $actualBranch"          
           if ($envInput -match "production|drhub") {
               $expectedBranch = "main"
           }
@@ -41,24 +37,20 @@ jobs:
           }
           elseif ($envInput -eq "uat") {
               $expectedBranch = "uat"
-          }
+          }          
           else {
               Write-Error "Unknown Environment: $envInput"
               exit 1
-          }
-          # 3. STRICT VALIDATION: Check if Actual matches Expected
+          }         
           if ($actualBranch -ne $expectedBranch) {
               Write-Host "::error::VALIDATION FAILED!"
               Write-Host "::error::Environment '$envInput' can ONLY be deployed from '$expectedBranch' branch."
-              Write-Host "::error::You are trying to run it from '$actualBranch'. Access Denied."
-              
-              # YE LINE PIPELINE KO ROKEGI
+              Write-Host "::error::You are trying to run it from '$actualBranch'. Access Denied."          
               exit 1 
-          }
-
-          # 4. Success Path
+          }         
           Write-Host "SUCCESS: Branch validation passed for $envInput."
           "branch=$expectedBranch" >> $env:GITHUB_OUTPUT
+          
   infrastructure-validation:
     needs: setup
     environment: ${{ inputs.environment }}-plan
