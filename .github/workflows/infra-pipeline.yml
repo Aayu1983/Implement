@@ -27,8 +27,7 @@ jobs:
     with:
       environment: ${{ github.event.inputs.target_env }}
       working_directory: ${{ github.event.inputs.working_directory }}
-      # Dynamic state key based on environment
-      #tf_state_key: "${{ github.event.inputs.target_env }}.terraform.tfstate"
+
     secrets:
       client_id: ${{ secrets.CLIENT_ID_JO_APNE_SETTINGS_ME_RAKHA_HAI }}
       subscription_id: ${{ secrets.SUB_ID_SETTINGS_VALA }}
