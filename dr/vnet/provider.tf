@@ -6,8 +6,8 @@ terraform {
       version = "~> 4.0"
     }
   }
-  backend "azurerm" {         
-    key                  = "vnet.terraform.tfstate"
+  backend "azurerm" {
+    key = "vnet.terraform.tfstate"
   }
 }
 
